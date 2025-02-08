@@ -197,6 +197,7 @@ def start_game():
     current_turn = data.get('current_turn')
     difficulty = data.get('difficulty')
 
+    print(f"location: {str(location)}")
     user = User.query.filter_by(token = token).first()
 
     if user is None:
@@ -346,7 +347,7 @@ def photo_report_upload():
         new_tournament = Tournament(player_id=user.id, tournament_date=datetime.now())
         db.session.add(new_tournament)
         db.session.commit()
-        UPLOAD_FOLDER = f"uploads/Tournament/{str(user.username)}/tournament_{str(new_tournament.id)}"
+        UPLOAD_FOLDER = f"uploads/Tournament/{str(user.username).strip()}/tournament_{str(new_tournament.id)}"
         create_tournament_folder(UPLOAD_FOLDER)
         recent_games = Game.query.filter_by(player_id=user.id, tournament_id=None).order_by(Game.game_date.desc()).limit(5).all()
 
@@ -361,7 +362,7 @@ def photo_report_upload():
         if last_tournament:
             tournament_id = last_tournament.id
         
-        UPLOAD_FOLDER = f"uploads/Tournament/{str(user.username)}/tournament_{str(last_tournament.id)}"
+        UPLOAD_FOLDER = f"uploads/Tournament/{str(user.username).strip()}/tournament_{str(last_tournament.id)}"
     
     if file and allowed_file(file.filename):
 
