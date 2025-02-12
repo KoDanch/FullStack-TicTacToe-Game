@@ -112,31 +112,33 @@ CREATE PROCEDURE SearchByUsername
     @Username NVARCHAR(50)
 AS
 BEGIN
-IF EXISTS(
-    SELECT 1
-    FROM
-    [user] u
-    INNER JOIN
-    [address] a ON u.address_id = a.id
-    WHERE
-    username LIKE '%' + @Username + '%'
-)
+IF EXISTS (
+    SELECT 1 FROM [user] u
+    INNER JOIN [address] a ON u.address_id = a.id
+    INNER JOIN [house] h ON a.house_id = h.id
+    INNER JOIN [street] s ON h.street_id = s.id
+    INNER JOIN [city] c ON s.city_id = c.id
+    LEFT JOIN [apartment] ap ON a.apartment_id = ap.id
+    WHERE u.username LIKE '%' + @Username + '%'
+    )
 BEGIN
-    SELECT
-    u.username AS  [User],
-    a.street AS [Street],
-    a.city AS [City],
-    a.state AS [State]
-    FROM
-    [user] u
-    INNER JOIN
-    [address] a ON u.address_id = a.id
-    WHERE
-    username LIKE '%' + @Username + '%';
+    SELECT 
+    u.username AS [User],
+    c.name AS [City],
+    s.name AS [Street],
+    h.number AS [House],
+        COALESCE(ap.number_apartment, 'No Apartment') AS [Apartment]
+    FROM [user] u
+    INNER JOIN [address] a ON u.address_id = a.id
+    INNER JOIN [house] h ON a.house_id = h.id
+    INNER JOIN [street] s ON h.street_id = s.id
+    INNER JOIN [city] c ON s.city_id = c.id
+    LEFT JOIN [apartment] ap ON a.apartment_id = ap.id
+    WHERE u.username LIKE '%' + @Username + '%';
 END
 ELSE
 BEGIN
-PRINT 'Not found user by username';
+    PRINT 'Not found user by username';
 END
 END
 """
@@ -144,30 +146,30 @@ END
 search_by_street = """
 CREATE PROCEDURE SearchByStreet
     @Street NVARCHAR(100)
-
 AS
 BEGIN
 IF EXISTS (
     SELECT 1
-    FROM 
-    [address] a
-    INNER JOIN
-    [user] u ON a.id = u.address_id
-    WHERE
-    street LIKE '%' + @Street + '%'
-)
+    FROM [street] s
+    INNER JOIN [house] h ON s.id = h.street_id
+    INNER JOIN [address] a ON h.id = a.house_id
+    INNER JOIN [user] u ON a.id = u.address_id
+    WHERE s.name LIKE '%' + @Street + '%'
+    )
 BEGIN
-    SELECT
+    SELECT 
     u.username AS [Username],
-    a.street AS [Street],
-    a.city AS [City],
-    a.state AS [State]
-    FROM 
-    [address] a
-    INNER JOIN
-    [user] u ON a.id = u.address_id
-    WHERE
-    street LIKE '%' + @Street + '%';
+    c.name AS [City],
+    s.name AS [Street],
+    h.number AS [House],
+        COALESCE(ap.number_apartment, 'No Apartment') AS [Apartment]
+    FROM [street] s
+    INNER JOIN [house] h ON s.id = h.street_id
+    INNER JOIN [address] a ON h.id = a.house_id
+    INNER JOIN [user] u ON a.id = u.address_id
+    INNER JOIN [city] c ON s.city_id = c.id
+    LEFT JOIN [apartment] ap ON a.apartment_id = ap.id
+    WHERE s.name LIKE '%' + @Street + '%';
 END
 ELSE
 BEGIN
@@ -176,50 +178,48 @@ END
 END
 """
 
-search_by_fullname_floor_apartament_num = """
-CREATE PROCEDURE SearchByFullnameFloorApartamentNum
-    @Fullname NVARCHAR(25),
-    @Floor INT,
-    @ApartamentNum INT
-
+search_by_fullname_apartament_num = """
+CREATE PROCEDURE SearchByFullnameApartamentNum
+    @Fullname NVARCHAR(50),
+    @ApartmentNum NVARCHAR(20)
 AS
 BEGIN
-IF EXISTS(
-    SELECT 1
-    FROM 
-    [user_requisite] r
-    INNER JOIN
-    [user] u ON r.id = u.requisite_id
-    INNER JOIN
-    [address] a ON u.address_id = a.id
-    INNER JOIN
-    [apartament_info] i ON a.id = i.address_id
-    WHERE 
-    r.full_name LIKE '%' + @Fullname + '%' AND
-    i.floor = @Floor AND
-    i.apartament_number = @ApartamentNum
-)
+IF EXISTS (
+    SELECT 1 
+    FROM [user_requisite] r
+    INNER JOIN [user] u ON r.id = u.requisite_id
+    INNER JOIN [address] a ON u.address_id = a.id
+    LEFT JOIN [apartment] ap ON a.apartment_id = ap.id
+    WHERE r.full_name LIKE '%' + @Fullname + '%'
+    AND (
+    (ap.number_apartment = @ApartmentNum AND @ApartmentNum != 'No Apartment') 
+    OR 
+    (@ApartmentNum = 'No Apartment' AND a.apartment_id IS NULL)
+        )
+    )
 BEGIN
-    SELECT
+    SELECT 
     u.username AS [Username],
     r.full_name AS [Name],
     r.phone_number AS [Phone],
     r.email AS [Email],
-    a.street AS [Street],
-    i.floor AS [Floor],
-    i.apartament_number [Apartaments]
-    FROM 
-    [user_requisite] r
-    INNER JOIN
-    [user] u ON r.id = u.requisite_id
-    INNER JOIN
-    [address] a ON u.address_id = a.id
-    INNER JOIN
-    [apartament_info] i ON a.id = i.address_id
-    WHERE 
-    r.full_name LIKE '%' + @Fullname + '%' AND
-    i.floor = @Floor AND
-    i.apartament_number = @ApartamentNum;
+    c.name AS [City],
+    s.name AS [Street],
+    h.number AS [House],
+    ap.number_apartment AS [Apartment]
+    FROM [user_requisite] r
+    INNER JOIN [user] u ON r.id = u.requisite_id
+    INNER JOIN [address] a ON u.address_id = a.id
+    INNER JOIN [house] h ON a.house_id = h.id
+    INNER JOIN [street] s ON h.street_id = s.id
+    INNER JOIN [city] c ON s.city_id = c.id
+    LEFT JOIN [apartment] ap ON a.apartment_id = ap.id
+    WHERE r.full_name LIKE '%' + @Fullname + '%'
+    AND (
+    (ap.number_apartment = @ApartmentNum AND @ApartmentNum != 'No Apartment') 
+    OR 
+    (@ApartmentNum = 'No Apartment' AND a.apartment_id IS NULL)
+        )  
 END
 ELSE
 BEGIN
@@ -234,24 +234,20 @@ CREATE PROCEDURE SearchAllTournamentFullname
 AS
 BEGIN
 IF EXISTS (
-    SELECT 1
-    FROM 
-        [user_requisite] r
-    INNER JOIN 
-        [tournament] t ON r.id = t.player_id
-    WHERE 
-        r.full_name LIKE '%' + @Fullname + '%'
-)
+    SELECT 1 
+    FROM [user_requisite] r
+    INNER JOIN [user] u ON r.id = u.requisite_id
+    LEFT JOIN [tournament] t ON u.id = t.player_id
+    WHERE r.full_name LIKE '%' + @Fullname + '%'
+    )
 BEGIN
     SELECT
-        r.full_name AS [Name],
-        t.id AS [TournamentID]
-    FROM 
-        [user_requisite] r
-    INNER JOIN 
-        [tournament] t ON r.id = t.player_id
-    WHERE 
-        r.full_name LIKE '%' + @Fullname + '%';
+    r.full_name AS [Name],
+        COALESCE(CAST(t.id AS NVARCHAR), 'No Tournament') AS [TournamentID]
+    FROM [user_requisite] r
+    INNER JOIN [user] u ON r.id = u.requisite_id
+    LEFT JOIN [tournament] t ON u.id = t.player_id
+    WHERE r.full_name LIKE '%' + @Fullname + '%';
 END
 ELSE
 BEGIN 
@@ -259,6 +255,7 @@ BEGIN
 END
 END
 """
+
 procedures = {
     "GetAllUser": get_all_user,
     "GetAllAddress": get_all_address,
@@ -268,6 +265,6 @@ procedures = {
     "GetRanking": get_ranking,
     "SearchByUsername": search_by_username,
     "SearchByStreet": search_by_street,
-    "SearchByFullnameFloorApartamentNum":search_by_fullname_floor_apartament_num,
+    "SearchByFullnameApartamentNum": search_by_fullname_apartament_num,
     "SearchAllTournamentFullname": search_all_tournament_for_fullname,
 }

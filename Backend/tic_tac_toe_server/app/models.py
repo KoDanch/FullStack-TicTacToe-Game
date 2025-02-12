@@ -1,6 +1,5 @@
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import UniqueConstraint
 from datetime import datetime
 
 class User(db.Model):
@@ -20,8 +19,8 @@ class User(db.Model):
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'), nullable=False)
     requisite_id = db.Column(db.Integer, db.ForeignKey('user_requisite.id'))
 
-    address = db.relationship('Address' , backref=db.backref('users', lazy=True))
-    requisite = db.relationship('UserRequisite', backref=db.backref('user_requisites', lazy=True))
+    address = db.relationship('Address', backref=db.backref('users', lazy='dynamic'))
+    requisite = db.relationship('UserRequisite', backref=db.backref('user', lazy=True))
 
     def __repr__(self): 
         return f"<User {self.username}>"
@@ -30,31 +29,50 @@ class User(db.Model):
         self.password = generate_password_hash(password)
 
     def check_password(self, password):
-        return check_password_hash(self.password, password)
+        return check_password_hash(self.password, password) 
+
+class City(db.Model):
+    __tablename__ = 'city'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+
+class Street(db.Model):
+    __tablename__ = 'street'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    city_id = db.Column(db.Integer, db.ForeignKey('city.id'), nullable=False)
+
+    city = db.relationship('City', backref=db.backref('streets', lazy=True))
+
+class House(db.Model):
+    __tablename__ = 'house'
+
+    id = db.Column(db.Integer, primary_key=True)
+    number = db.Column(db.String(10), nullable=False)
+    street_id = db.Column(db.Integer, db.ForeignKey('street.id'), nullable=False)
+
+    street = db.relationship('Street', backref=db.backref('houses', lazy=True))
+
+class Apartment(db.Model):
+    __tablename__ = 'apartment'
+
+    id = db.Column(db.Integer, primary_key=True)
+    number_apartment = db.Column(db.String(4))
+    house_id = db.Column(db.Integer, db.ForeignKey('house.id'), nullable=False)
+
+    house = db.relationship('House', backref=db.backref('apartments', lazy=True))
 
 class Address(db.Model):
     __tablename__ = 'address'
 
     id = db.Column(db.Integer, primary_key=True)
-    street = db.Column(db.String(100, collation="Cyrillic_General_100_CS_AS"))
-    city = db.Column(db.String(26, collation="Cyrillic_General_100_CS_AS"))
-    state = db.Column(db.String(22, collation="Cyrillic_General_100_CS_AS"))
-    postal_code = db.Column(db.String(10))
+    house_id = db.Column(db.Integer, db.ForeignKey('house.id'), nullable=False)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'))  
 
-    apartaments = db.relationship('ApartamentInfo' , backref=db.backref('address', lazy=True))
-    
-class ApartamentInfo(db.Model):
-    __tablename__ = 'apartament_info'
-
-    id = db.Column(db.Integer, primary_key=True)
-    floor = db.Column(db.Integer)
-    apartament_number = db.Column(db.Integer)
-    
-    address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
-
-    __table_args__ = (
-        UniqueConstraint('address_id', 'floor', 'apartament_number', name='unique_apartament_info'),
-    )
+    house = db.relationship('House', backref=db.backref('addresses', lazy=True))
+    apartment = db.relationship('Apartment', backref=db.backref('addresses', lazy=True))
 
 class UserRequisite(db.Model):
     __tablename__='user_requisite'
