@@ -16,10 +16,10 @@ class User(db.Model):
     games_draws = db.Column(db.Integer, default=0)
     rating = db.Column(db.Integer, default=0)
 
-    address_id = db.Column(db.Integer, db.ForeignKey('address.id'), nullable=False)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
     requisite_id = db.Column(db.Integer, db.ForeignKey('user_requisite.id'))
 
-    address = db.relationship('Address', backref=db.backref('users', lazy='dynamic'))
+    apartment = db.relationship('Apartment', backref=db.backref('users', lazy='dynamic'))
     requisite = db.relationship('UserRequisite', backref=db.backref('user', lazy=True))
 
     def __repr__(self): 
@@ -63,16 +63,6 @@ class Apartment(db.Model):
     house_id = db.Column(db.Integer, db.ForeignKey('house.id'), nullable=False)
 
     house = db.relationship('House', backref=db.backref('apartments', lazy=True))
-
-class Address(db.Model):
-    __tablename__ = 'address'
-
-    id = db.Column(db.Integer, primary_key=True)
-    house_id = db.Column(db.Integer, db.ForeignKey('house.id'), nullable=False)
-    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'))  
-
-    house = db.relationship('House', backref=db.backref('addresses', lazy=True))
-    apartment = db.relationship('Apartment', backref=db.backref('addresses', lazy=True))
 
 class UserRequisite(db.Model):
     __tablename__='user_requisite'

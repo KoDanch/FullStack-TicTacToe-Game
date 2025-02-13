@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import text
 from werkzeug.utils import secure_filename
 from .switch_bot_move import switch_dict, check_winner, is_draw, make_move_on_board, newbee_bot_move
-from app.models import User, Address, Game, Ranking, PhotoReport, Tournament
+from app.models import User, Apartment, Game, Ranking, PhotoReport, Tournament
 import logging, random, json, uuid, os, hashlib
 
 

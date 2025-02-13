@@ -113,12 +113,12 @@ CREATE PROCEDURE SearchByUsername
 AS
 BEGIN
 IF EXISTS (
-    SELECT 1 FROM [user] u
-    INNER JOIN [address] a ON u.address_id = a.id
+    SELECT 1 
+    FROM [user] u
+    INNER JOIN [apartment] a ON u.apartment_id = a.id
     INNER JOIN [house] h ON a.house_id = h.id
     INNER JOIN [street] s ON h.street_id = s.id
     INNER JOIN [city] c ON s.city_id = c.id
-    LEFT JOIN [apartment] ap ON a.apartment_id = ap.id
     WHERE u.username LIKE '%' + @Username + '%'
     )
 BEGIN
@@ -127,13 +127,12 @@ BEGIN
     c.name AS [City],
     s.name AS [Street],
     h.number AS [House],
-        COALESCE(ap.number_apartment, 'No Apartment') AS [Apartment]
+        COALESCE(a.number_apartment, 'No Apartment') AS [Apartment]
     FROM [user] u
-    INNER JOIN [address] a ON u.address_id = a.id
+    INNER JOIN [apartment] a ON u.apartment_id = a.id
     INNER JOIN [house] h ON a.house_id = h.id
     INNER JOIN [street] s ON h.street_id = s.id
     INNER JOIN [city] c ON s.city_id = c.id
-    LEFT JOIN [apartment] ap ON a.apartment_id = ap.id
     WHERE u.username LIKE '%' + @Username + '%';
 END
 ELSE
@@ -152,8 +151,8 @@ IF EXISTS (
     SELECT 1
     FROM [street] s
     INNER JOIN [house] h ON s.id = h.street_id
-    INNER JOIN [address] a ON h.id = a.house_id
-    INNER JOIN [user] u ON a.id = u.address_id
+    LEFT JOIN [apartment] a ON h.id = a.house_id
+    LEFT JOIN [user] u ON a.id = u.apartment_id
     WHERE s.name LIKE '%' + @Street + '%'
     )
 BEGIN
@@ -162,13 +161,12 @@ BEGIN
     c.name AS [City],
     s.name AS [Street],
     h.number AS [House],
-        COALESCE(ap.number_apartment, 'No Apartment') AS [Apartment]
+        COALESCE(a.number_apartment, 'No Apartment') AS [Apartment]
     FROM [street] s
     INNER JOIN [house] h ON s.id = h.street_id
-    INNER JOIN [address] a ON h.id = a.house_id
-    INNER JOIN [user] u ON a.id = u.address_id
+    LEFT JOIN [apartment] a ON h.id = a.house_id
+    LEFT JOIN [user] u ON a.id = u.apartment_id
     INNER JOIN [city] c ON s.city_id = c.id
-    LEFT JOIN [apartment] ap ON a.apartment_id = ap.id
     WHERE s.name LIKE '%' + @Street + '%';
 END
 ELSE
@@ -188,13 +186,12 @@ IF EXISTS (
     SELECT 1 
     FROM [user_requisite] r
     INNER JOIN [user] u ON r.id = u.requisite_id
-    INNER JOIN [address] a ON u.address_id = a.id
-    LEFT JOIN [apartment] ap ON a.apartment_id = ap.id
+    LEFT JOIN [apartment] a ON u.apartment_id = a.id
     WHERE r.full_name LIKE '%' + @Fullname + '%'
     AND (
-    (ap.number_apartment = @ApartmentNum AND @ApartmentNum != 'No Apartment') 
+    (a.number_apartment = @ApartmentNum AND @ApartmentNum != 'No Apartment') 
     OR 
-    (@ApartmentNum = 'No Apartment' AND a.apartment_id IS NULL)
+    (@ApartmentNum = 'No Apartment' AND u.apartment_id IS NULL)
         )
     )
 BEGIN
@@ -206,19 +203,18 @@ BEGIN
     c.name AS [City],
     s.name AS [Street],
     h.number AS [House],
-    ap.number_apartment AS [Apartment]
+        COALESCE(a.number_apartment, 'No Apartment') AS [Apartment]
     FROM [user_requisite] r
     INNER JOIN [user] u ON r.id = u.requisite_id
-    INNER JOIN [address] a ON u.address_id = a.id
+    LEFT JOIN [apartment] a ON u.apartment_id = a.id
     INNER JOIN [house] h ON a.house_id = h.id
     INNER JOIN [street] s ON h.street_id = s.id
     INNER JOIN [city] c ON s.city_id = c.id
-    LEFT JOIN [apartment] ap ON a.apartment_id = ap.id
     WHERE r.full_name LIKE '%' + @Fullname + '%'
     AND (
-    (ap.number_apartment = @ApartmentNum AND @ApartmentNum != 'No Apartment') 
+    (a.number_apartment = @ApartmentNum AND @ApartmentNum != 'No Apartment') 
     OR 
-    (@ApartmentNum = 'No Apartment' AND a.apartment_id IS NULL)
+    (@ApartmentNum = 'No Apartment' AND u.apartment_id IS NULL)
         )  
 END
 ELSE
